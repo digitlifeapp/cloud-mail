@@ -3,14 +3,16 @@
     <div class="head-opt">
       <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="22" height="22" title="添加邮箱" @click="add"/>
       <Icon class="icon refresh" icon="ion:reload" width="18" height="18" title="刷新" @click="refresh"/>
-      <Icon
-        class="icon expand-toggle"
-        :icon="isAllExpanded ? 'fluent:collapse-all-20-filled' : 'fluent:expand-all-20-filled'"
-        width="18"
-        height="18"
-        :title="isAllExpanded ? '全部折叠' : '全部展开'"
-        @click="toggleExpandAll"
-      />
+      <div class="icon expand-toggle" :title="isAllExpanded ? '全部折叠' : '全部展开'" @click="toggleExpandAll">
+        <svg v-if="isAllExpanded" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m18 15-6-6-6 6"/>
+          <path d="m18 9-6-6-6 6"/>
+        </svg>
+        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m6 9 6 6 6-6"/>
+          <path d="m6 15 6 6 6-6"/>
+        </svg>
+      </div>
       <div class="search-wrap">
         <el-input
           v-model="searchKeyword"
