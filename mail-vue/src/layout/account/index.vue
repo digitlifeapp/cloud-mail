@@ -1,12 +1,20 @@
 <template>
   <div class="account-box">
     <div class="head-opt">
-      <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="23" height="23" @click="add"/>
-      <Icon class="icon refresh" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="22" height="22" title="添加邮箱" @click="add"/>
+      <Icon class="icon refresh" icon="ion:reload" width="18" height="18" title="刷新" @click="refresh"/>
+      <Icon
+        class="icon expand-toggle"
+        :icon="isAllExpanded ? 'fluent:collapse-all-20-filled' : 'fluent:expand-all-20-filled'"
+        width="18"
+        height="18"
+        :title="isAllExpanded ? '全部折叠' : '全部展开'"
+        @click="toggleExpandAll"
+      />
       <div class="search-wrap">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索域名/邮箱..."
+          placeholder="搜索..."
           clearable
           size="small"
           class="search-input"
@@ -29,7 +37,7 @@
             <template #title>
               <div class="domain-header">
                 <div class="domain-title-wrap">
-                  <Icon icon="fluent:folder-20-filled" class="domain-folder-icon" width="18" height="18" color="#409EFF"/>
+                  <Icon icon="fluent:folder-20-filled" class="domain-folder-icon" width="16" height="16" color="#409EFF"/>
                   <span class="domain-name">{{ group.domain }}</span>
                   <span class="domain-count">({{ group.accounts.length }})</span>
                 </div>
@@ -49,36 +57,44 @@
               :class="itemBg(item.accountId)"
               @click="changeAccount(item)"
             >
-              <div class="account-header">
+              <div class="account-row-content">
                 <span class="account-text" :title="item.email">{{ item.email }}</span>
-                <el-badge
-                  v-if="item.unreadCount > 0"
-                  :value="item.unreadCount"
-                  class="account-unread-badge"
-                  type="danger"
-                />
-              </div>
-              <div class="opt">
-                <div class="send-email" @click.stop>
-                  <Icon @click="setAllReceive(item)" v-if="!item.allReceive" icon="eva:email-fill" width="22" height="22" color="#fccb1a"/>
-                  <Icon @click="setAllReceive(item)" v-else icon="flat-color-icons:folder" width="22" height="22" color="#23c4f1" />
-                </div>
-                <div class="settings" @click.stop>
-                  <Icon icon="fluent-color:clipboard-24" width="22" height="22" @click.stop="copyAccount(item.email)"/>
-                  <Icon icon="fluent:settings-24-filled" width="21" height="21" color="#909399"
-                        v-if="showNullSetting(item)"/>
-                  <el-dropdown v-else>
-                    <Icon icon="fluent:settings-24-filled" width="21" height="21" color="#909399"/>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">{{ $t('rename') }}</el-dropdown-item>
-                        <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item, index)">{{ $t('pin') }}</el-dropdown-item>
-                        <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
-                                          @click="remove(item)">{{ $t('delete') }}
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+                <div class="account-right-actions">
+                  <el-badge
+                    v-if="item.unreadCount > 0"
+                    :value="item.unreadCount"
+                    class="account-unread-badge"
+                    type="danger"
+                  />
+                  <div class="settings-wrap" @click.stop>
+                    <el-dropdown trigger="hover">
+                      <Icon icon="fluent:settings-24-filled" width="18" height="18" class="gear-icon" color="#909399"/>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item @click="copyAccount(item.email)">
+                            <Icon icon="fluent-color:clipboard-24" width="16" height="16" style="margin-right: 6px"/>
+                            复制邮箱地址
+                          </el-dropdown-item>
+                          <el-dropdown-item @click="setAllReceive(item)">
+                            <Icon :icon="item.allReceive ? 'flat-color-icons:folder' : 'eva:email-fill'" width="16" height="16" style="margin-right: 6px"/>
+                            {{ item.allReceive ? '关闭聚合接收' : '开启聚合接收' }}
+                          </el-dropdown-item>
+                          <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
+                            <Icon icon="fluent:rename-16-regular" width="16" height="16" style="margin-right: 6px"/>
+                            {{ $t('rename') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item, index)">
+                            <Icon icon="fluent:pin-16-regular" width="16" height="16" style="margin-right: 6px"/>
+                            {{ $t('pin') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')" @click="remove(item)">
+                            <Icon icon="fluent:delete-16-regular" width="16" height="16" style="margin-right: 6px"/>
+                            {{ $t('delete') }}
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </div>
                 </div>
               </div>
             </div>
@@ -206,6 +222,7 @@ const domainList = computed(() => settingStore.domainList)
 const accounts = reactive([])
 const searchKeyword = ref('')
 const activeDomains = ref([])
+const isAllExpanded = ref(true)
 const noLoading = ref(false)
 const loading = ref(false)
 const followLoading = ref(false);
@@ -262,10 +279,20 @@ const domainGroups = computed(() => {
 });
 
 watch(domainGroups, (groups) => {
-  if (groups.length > 0 && activeDomains.value.length === 0) {
+  if (groups.length > 0 && activeDomains.value.length === 0 && isAllExpanded.value) {
     activeDomains.value = groups.map(g => g.domain);
   }
 }, { immediate: true });
+
+function toggleExpandAll() {
+  if (isAllExpanded.value) {
+    activeDomains.value = [];
+    isAllExpanded.value = false;
+  } else {
+    activeDomains.value = domainGroups.value.map(g => g.domain);
+    isAllExpanded.value = true;
+  }
+}
 
 if (hasPerm('account:query')) {
   getAccountList()
@@ -618,20 +645,16 @@ path[fill="#ffdda1"] {
     align-items: center;
     height: 42px;
     box-shadow: var(--header-actions-border);
-    padding: 0 10px;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
 
     .icon {
       cursor: pointer;
       flex-shrink: 0;
-    }
-
-    .refresh {
-      margin-left: 2px;
-    }
-
-    .add {
-      margin-left: 2px;
+      color: var(--el-text-color-regular);
+      &:hover {
+        color: #409EFF;
+      }
     }
 
     .search-wrap {
@@ -658,7 +681,7 @@ path[fill="#ffdda1"] {
       border-bottom: none;
     }
     :deep(.el-collapse-item__content) {
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }
   }
 
@@ -698,31 +721,6 @@ path[fill="#ffdda1"] {
     }
   }
 
-  .account-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-
-    .account-text {
-      font-weight: 600;
-      font-size: 13px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      max-width: 180px;
-    }
-
-    .account-unread-badge {
-      :deep(.el-badge__content) {
-        font-size: 10px;
-        height: 16px;
-        line-height: 16px;
-        padding: 0 4px;
-      }
-    }
-  }
-
   .scrollbar {
     width: 100%;
     height: calc(100% - 42px);
@@ -754,35 +752,76 @@ path[fill="#ffdda1"] {
 
   .item {
     background-color: var(--el-bg-color);
-    border-radius: 8px;
-    padding: 10px 10px;
-    margin-top: 6px;
-    margin-left: 8px;
-    margin-right: 8px;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 4px;
+    margin-left: 6px;
+    margin-right: 6px;
     cursor: pointer;
     border: 1px solid var(--el-border-color-extra-light);
 
-    .opt {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: #888;
+    &:hover {
+      background-color: var(--el-fill-color-light);
 
-      .settings {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      .gear-icon {
+        opacity: 1 !important;
+      }
+    }
+
+    .account-row-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 24px;
+
+      .account-text {
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--el-text-color-primary);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        flex: 1;
+        margin-right: 6px;
       }
 
-      .send-email {
+      .account-right-actions {
         display: flex;
         align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .account-unread-badge {
+          :deep(.el-badge__content) {
+            font-size: 10px;
+            height: 15px;
+            line-height: 15px;
+            padding: 0 4px;
+          }
+        }
+
+        .settings-wrap {
+          display: flex;
+          align-items: center;
+
+          .gear-icon {
+            opacity: 0.4;
+            transition: opacity 0.2s ease;
+            cursor: pointer;
+
+            &:hover {
+              color: #409EFF !important;
+            }
+          }
+        }
       }
     }
   }
 
   .item-choose {
-    background: var(--choose-account-background);
+    background: var(--choose-account-background) !important;
+    border-color: #409eff44;
   }
 }
 
