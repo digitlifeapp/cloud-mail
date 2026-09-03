@@ -128,7 +128,7 @@ const handleResize = () => {
   @media (max-width: 767px) {
     position: fixed;
     z-index: 100;
-    width: 260px;
+    width: 300px;
   }
 }
 
@@ -138,7 +138,7 @@ const handleResize = () => {
   transform: translateX(-100%);
   opacity: 0;
   @media (max-width: 1024px) {
-    width: 260px;
+    width: 300px;
     z-index: 100;
   }
 }
@@ -146,7 +146,7 @@ const handleResize = () => {
 
 .main-box-show {
   display: grid;
-  grid-template-columns: 260px  1fr;
+  grid-template-columns: 300px 1fr;
   height: calc(100% - 60px);
   @media (max-width: 767px) {
     grid-template-columns: 1fr;
